@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lage-Dashboard</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+:root{--bg:#0b1118;--card:#111a24;--line:#1e2b3a;--tx:#e6eef7;--mu:#8aa0b5;--ac:#6fd0f5;--red:#ef4444;--amb:#f59e0b;--grn:#34d399}
+[data-theme=light]{--bg:#eef3f8;--card:#fff;--line:#d9e3ec;--tx:#0f1b27;--mu:#5a6e82;--ac:#0a86b8}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+a{color:inherit}
+header{position:sticky;top:0;z-index:1000;display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;padding:10px 20px;background:var(--card);border-bottom:1px solid var(--line)}
+h1{font-size:16px;margin:0;font-weight:650;letter-spacing:.2px}
+nav{display:flex;gap:4px;flex:1;flex-wrap:wrap}
+nav button{background:none;border:0;color:var(--mu);padding:8px 12px;border-radius:8px;font:inherit;cursor:pointer}
+nav button[aria-selected=true]{background:color-mix(in srgb,var(--ac) 16%,transparent);color:var(--ac);font-weight:600}
+.clock{display:flex;align-items:center;gap:12px}
+#time{font:600 22px/1 ui-monospace,Menlo,Consolas,monospace;font-variant-numeric:tabular-nums;min-width:9ch;text-align:right}
+#date{display:block;font-size:11px;color:var(--mu);text-align:right}
+.sw{display:flex;align-items:center;gap:7px;background:none;border:0;color:var(--mu);cursor:pointer;padding:2px;font:11px system-ui}
+.led{width:9px;height:9px;border-radius:50%;background:#3a2a10;box-shadow:inset 0 0 2px #000}
+.tg{width:34px;height:20px;border-radius:5px;background:linear-gradient(#222b35,#3a4654);border:1px solid #556;position:relative;box-shadow:inset 0 2px 4px #000a}
+.lv{position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:3px;background:linear-gradient(#e5e9ee,#9aa5b1);box-shadow:0 1px 3px #000a;transition:left .15s}
+.sw[aria-checked=true] .led{background:var(--amb);box-shadow:0 0 8px 2px var(--amb)}
+.sw[aria-checked=true] .lv{left:16px}.sw[aria-checked=true]{color:var(--amb)}
+#th{background:none;border:1px solid var(--line);color:var(--tx);border-radius:8px;width:36px;height:36px;display:grid;place-items:center;cursor:pointer}
+.i{width:18px;height:18px;flex:none}
+main{padding:16px 20px 40px;max-width:1700px;margin:auto}
+.panel{display:none}.panel.on{display:block}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;display:flex;flex-direction:column;min-width:0;overflow:hidden}
+.card h2{display:flex;align-items:center;gap:8px;margin:0;padding:12px 14px;font-size:13px;font-weight:600;color:var(--mu);border-bottom:1px solid var(--line)}
+.card h2 .i{color:var(--ac)}.card h2 a{margin-left:auto;color:var(--mu);font-size:12px;text-decoration:none}
+.card h2 a:hover{color:var(--ac)}
+.b{padding:14px;flex:1;min-height:150px}
+.w2{grid-column:span 2}.all{grid-column:1/-1}
+@media(max-width:760px){.w2{grid-column:auto}}
+.fr .b{padding:0;min-height:380px}.fr iframe{width:100%;height:100%;min-height:380px;border:0;display:block;background:#fff}
+.tall .b{min-height:620px}.tall iframe{min-height:620px}
+.big{font:600 40px/1 ui-monospace,Menlo,Consolas,monospace;font-variant-numeric:tabular-nums}
+.big small{font-size:16px;color:var(--mu)}
+.kv{display:flex;gap:18px;margin-top:12px;flex-wrap:wrap}.kv div{min-width:80px}.kv b{display:block;font-size:17px;font-variant-numeric:tabular-nums}.kv span,.m{color:var(--mu);font-size:12px}
+.nl{list-style:none;margin:0;padding:0;max-height:340px;overflow:auto}
+.nl li{padding:8px 0;border-bottom:1px solid var(--line)}.nl li:last-child{border:0}
+.nl a{text-decoration:none;display:block}.nl a:hover{color:var(--ac)}.nl span{font-size:11px;color:var(--mu)}
+.err{color:var(--mu)}.chip{display:inline-block;font-size:11px;padding:1px 7px;border-radius:99px;margin-right:6px;background:var(--line);color:var(--tx)}
+.chip.Extreme,.chip.Severe{background:var(--red);color:#fff}.chip.Moderate{background:var(--amb);color:#111}
+svg.ch{width:100%;height:70px;margin-top:12px;display:block}
+.bar{height:8px;border-radius:4px;background:var(--line);margin-top:12px;overflow:hidden}.bar i{display:block;height:100%;background:var(--ac)}
+input{background:var(--bg);color:var(--tx);border:1px solid var(--line);border-radius:8px;padding:7px 9px;font:inherit;width:100%;margin:8px 0}
+.btn{background:var(--ac);color:#04202c;border:0;border-radius:8px;padding:7px 12px;font:600 13px system-ui;cursor:pointer}
+.inc{display:grid;grid-template-columns:minmax(0,2.2fr) minmax(260px,1fr);gap:14px}
+@media(max-width:900px){.inc{grid-template-columns:1fr}}
+#map{height:640px;border-radius:12px;border:1px solid var(--line)}
+.leg{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.leg button{border:1px solid var(--line);background:var(--card);color:var(--tx);border-radius:99px;padding:5px 11px;cursor:pointer;font:inherit}
+.leg button.off{opacity:.4}
+.pin{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;border:2px solid #fff;font-size:15px;box-shadow:0 2px 6px #0007}
+#side{max-height:640px;overflow:auto}
+</style>
+</head>
+<body>
+<header>
+  <h1>Lage-Dashboard</h1>
+  <nav role="tablist" id="tabs"></nav>
+  <div class="clock">
+    <div><span id="time"></span><span id="date"></span></div>
+    <button class="sw" id="tsw" role="switch" aria-checked="false" aria-label="Taktische Zeit umschalten"><span class="led"></span><span class="tg"><span class="lv"></span></span><span>TAKT</span></button>
+    <button id="th" aria-label="Hell/Dunkel umschalten"></button>
+  </div>
+</header>
+<main>
+  <section class="panel on" id="p0"><div class="grid" id="g0"></div></section>
+  <section class="panel" id="p1"><div class="grid" id="g1"></div></section>
+  <section class="panel" id="p2"><div class="grid" id="g2"></div></section>
+  <section class="panel" id="p3">
+    <div class="leg" id="leg"></div>
+    <div class="inc"><div id="map"></div><div class="card"><h2 id="sh"></h2><div class="b" id="side"></div></div></div>
+  </section>
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+/* ===== Konfiguration ===== */
+const URL_={
+ so:'https://www.stoerungsauskunft.de/stromausfall/',
+ vk:'https://www.mainziel.de/',
+ rr:'https://embed.windy.com/embed2.html?lat=50.11&lon=8.68&zoom=9&level=surface&overlay=radar&marker=true&calendar=now&type=map&metricWind=km%2Fh&metricTemp=%C2%B0C',
+ wm:'https://www.warmaplive.com/',ud:'https://map.ukrdailyupdate.com/',wa:'https://www.warmap.ai/latest-events',cf:'https://conflictly.app/'
+};
+const REFRESH_MIN=10;
+
+/* ===== Helfer ===== */
+const $=s=>document.querySelector(s);
+const IC={
+cloud:'<path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9z"/>',
+waves:'<path d="M2 7c2 1.5 3.500-1.500 5.500 0s3.500 1.500 5.500 0 3.500-1.500 5.500 0M2 13c2 1.500 3.500-1.500 5.500 0s3.500 1.500 5.500 0 3.500-1.500 5.500 0M2 19c2 1.500 3.500-1.500 5.500 0s3.500 1.500 5.500 0 3.500-1.500 5.500 0"/>',
+bolt:'<path d="M13 2 3 14h9l-1 8 10-12h-9z"/>',
+gas:'<path d="M4 6c0-1.700 3.600-3 8-3s8 1.300 8 3-3.600 3-8 3-8-1.300-8-3zM4 6v12c0 1.700 3.600 3 8 3s8-1.300 8-3V6"/>',
+map:'<path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3zM9 3v15M15 6v15"/>',
+news:'<path d="M4 4h13v16H6a2 2 0 0 1-2-2zM17 8h3v10a2 2 0 0 1-2 2M8 8h5M8 12h5M8 16h5"/>',
+car:'<path d="M5 17h14M6 17l1.500-6h9L18 17M7 17v2M17 17v2M9 14h.01M15 14h.01"/>',
+radar:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.500"/><path d="m12 12 6-6"/>',
+shield:'<path d="M20 13c0 5-3.500 7.500-7.660 8.950a1 1 0 0 1-.67-.01C7.500 20.500 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.500-1.200 6.240-2.720a1.170 1.170 0 0 1 1.520 0C14.510 3.810 17 5 19 5a1 1 0 0 1 1 1z"/>',
+flame:'<path d="M8.500 14.500A2.500 2.500 0 0 0 11 12c0-1.400-.5-2-1-3-1.070-2.140-.22-4.050 2-6 .5 2.500 2 4.900 4 6.500 2 1.600 3 3.500 3 5.500a7 7 0 1 1-14 0c0-1.150.43-2.290 1-3a2.500 2.500 0 0 0 2.500 2.500z"/>',
+lock:'<path d="M5 11h14v10H5zM8 11V7a4 4 0 0 1 8 0v4"/>',
+alert:'<path d="m21.730 18-8-14a2 2 0 0 0-3.480 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.730-3zM12 9v4M12 17h.01"/>',
+eye:'<path d="M2 12s3.500-7 10-7 10 7 10 7-3.500 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+globe:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/>',
+sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.930 4.930l1.410 1.410M17.660 17.660l1.410 1.410M2 12h2M20 12h2M6.340 17.660l-1.410 1.410M19.070 4.930l-1.410 1.410"/>',
+moon:'<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"/>'};
+const ic=n=>`<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${IC[n]}</svg>`;
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const j=async(u,o)=>{const r=await fetch(u,o);if(!r.ok)throw new Error(r.status);return r.json()};
+const fail=el=>el.innerHTML='<p class="err">Daten gerade nicht abrufbar. Wird beim nächsten Intervall erneut versucht.</p>';
+const ago=t=>{const m=Math.max(1,Math.round((Date.now()-t)/6e4));return m<60?m+' Min.':m<1440?Math.round(m/60)+' Std.':Math.round(m/1440)+' Tg.'};
+const poly=(v,w=300,h=70)=>{const lo=Math.min(...v),hi=Math.max(...v),s=hi-lo||1;return `<svg class="ch" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><polyline fill="none" stroke="var(--ac)" stroke-width="2" vector-effect="non-scaling-stroke" points="${v.map((y,i)=>(i/(v.length-1)*w).toFixed(1)+','+(h-4-(y-lo)/s*(h-8)).toFixed(1)).join(' ')}"/></svg>`};
+
+/* ===== Aufbau Karten ===== */
+const CARDS=[
+[0,'wx','Wetter Frankfurt','cloud'],[0,'pg','Mainpegel Frankfurt','waves'],[0,'sp','Strompreis Day-Ahead','bolt'],[0,'gs','Gasspeicher Deutschland','gas'],
+[0,'so','Stromausfallkarte (störungsauskunft.de)','map','w2 fr',URL_.so],[0,'soN','Meldungen zu Stromausfällen','news'],
+[0,'vk','Verkehrslage Frankfurt (mainziel.de)','car','w2 fr',URL_.vk],[0,'rr','Regenradar Frankfurt','radar','w2 fr',URL_.rr],
+[0,'pol','News Polizei Frankfurt','shield'],[0,'fw','News Feuerwehr Frankfurt','flame'],[0,'cy','Cyberlage','lock'],
+[0,'te','Terror und Anschläge in Deutschland','alert'],[0,'sa','Sabotage und Spionage in Deutschland','eye'],[0,'nina','NINA- und Unwetterwarnungen','alert','w2'],
+[1,'wm','Kriegskarte (warmaplive.com)','map','all fr tall',URL_.wm],[1,'ud','UKR Daily Update Karte','map','w2 fr tall',URL_.ud],[1,'wa','warmap.ai Latest Events','map','w2 fr tall',URL_.wa],
+[2,'cf','conflictly.app Weltkarte','globe','all fr tall',URL_.cf]];
+CARDS.forEach(([p,id,t,i,c='',u])=>{
+  $('#g'+p).insertAdjacentHTML('beforeend',`<article class="card ${c}"><h2>${ic(i)}${t}${u?`<a href="${u}" target="_blank" rel="noopener">In neuem Tab öffnen</a>`:''}</h2><div class="b" id="${id}">${u?`<iframe data-src="${u}" title="${t}" referrerpolicy="no-referrer" allow="fullscreen"></iframe>`:'<p class="m">Lädt …</p>'}</div></article>`)});
+const loadFrames=p=>document.querySelectorAll('#p'+p+' iframe[data-src]').forEach(f=>{f.src=f.dataset.src;f.removeAttribute('data-src')});
+loadFrames(0);
+
+/* ===== Tabs ===== */
+['Lage','Ukraine-Russland-Konflikt','Weltweite Lage','Vorkommnisse Deutschland'].forEach((t,i)=>{
+  const b=document.createElement('button');b.textContent=t;b.setAttribute('role','tab');b.setAttribute('aria-selected',i==0);
+  b.onclick=()=>{document.querySelectorAll('#tabs button').forEach((x,k)=>x.setAttribute('aria-selected',k==i));
+    document.querySelectorAll('.panel').forEach((x,k)=>x.classList.toggle('on',k==i));
+    if(i<3)loadFrames(i);else{initMap();setTimeout(()=>map.invalidateSize(),50)}};
+  $('#tabs').append(b)});
+
+/* ===== Uhr / taktische Zeit ===== */
+const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],p2=n=>String(n).padStart(2,'0');
+let tact=localStorage.tact=='1';
+function tick(){const d=new Date();
+  if(tact){$('#time').textContent=p2(d.getDate())+p2(d.getHours())+p2(d.getMinutes())+MON[d.getMonth()]+p2(d.getFullYear()%100);$('#date').textContent='Taktische Zeit (lokal)'}
+  else{$('#time').textContent=p2(d.getHours())+':'+p2(d.getMinutes())+':'+p2(d.getSeconds());$('#date').textContent=d.toLocaleDateString('de-DE',{weekday:'short',day:'2-digit',month:'2-digit',year:'numeric'})}}
+$('#tsw').onclick=()=>{tact=!tact;localStorage.tact=tact?1:0;$('#tsw').setAttribute('aria-checked',tact);tick()};
+$('#tsw').setAttribute('aria-checked',tact);setInterval(tick,1000);tick();
+
+/* ===== Hell/Dunkel ===== */
+let tiles;
+function setTheme(t){document.documentElement.dataset.theme=t;localStorage.theme=t;$('#th').innerHTML=ic(t=='dark'?'sun':'moon');if(mapReady)setTiles()}
+$('#th').onclick=()=>setTheme(document.documentElement.dataset.theme=='dark'?'light':'dark');
+setTheme(localStorage.theme||(matchMedia('(prefers-color-scheme: light)').matches?'light':'dark'));
+
+/* ===== Wetter ===== */
+const WC=c=>c==0?'Klar':c<4?'Wolkig':c<50?'Nebel':c<68?'Regen':c<78?'Schnee':c<83?'Schauer':c<87?'Schneeschauer':'Gewitter';
+async function wx(){const el=$('#wx');try{
+  const d=await j('https://api.open-meteo.com/v1/forecast?latitude=50.11&longitude=8.68&current=temperature_2m,apparent_temperature,wind_speed_10m,wind_gusts_10m,precipitation,weather_code&hourly=precipitation&forecast_days=2&timezone=Europe%2FBerlin');
+  const c=d.current,i=d.hourly.time.indexOf(c.time.slice(0,13)+':00'),n=d.hourly.precipitation.slice(i+1,i+7).reduce((a,b)=>a+b,0);
+  el.innerHTML=`<div class="big">${Math.round(c.temperature_2m)}<small> °C</small></div><div class="m">${WC(c.weather_code)}, gefühlt ${Math.round(c.apparent_temperature)} °C</div>
+  <div class="kv"><div><b>${Math.round(c.wind_speed_10m)} km/h</b><span>Wind, Böen ${Math.round(c.wind_gusts_10m)}</span></div><div><b>${c.precipitation.toFixed(1)} mm</b><span>Niederschlag jetzt</span></div><div><b>${n.toFixed(1)} mm</b><span>nächste 6 Std.</span></div></div>`}catch(e){fail(el)}}
+
+/* ===== Mainpegel ===== */
+async function pg(){const el=$('#pg');try{
+  const d=await j('https://www.pegelonline.wsv.de/webservices/rest-api/v2/stations/FRANKFURT%20OSTHAFEN/W/measurements.json?start=P2D');
+  const v=d.map(x=>x.value),l=d[d.length-1],d6=d.find(x=>new Date(x.timestamp)>=Date.now()-6*36e5)||d[0],tr=l.value-d6.value;
+  el.innerHTML=`<div class="big">${Math.round(l.value)}<small> cm</small></div><div class="m">Pegel Frankfurt Osthafen, ${new Date(l.timestamp).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})} Uhr</div>${poly(v)}
+  <div class="kv"><div><b>${tr>0?'+':''}${Math.round(tr)} cm</b><span>Veränderung 6 Std.</span></div><div><b>${Math.round(Math.max(...v))} cm</b><span>Max. 48 Std.</span></div><div><b>${Math.round(Math.min(...v))} cm</b><span>Min. 48 Std.</span></div></div>`}catch(e){fail(el)}}
+
+/* ===== Strompreis Day-Ahead ===== */
+async function sp(){const el=$('#sp');try{
+  const d=await j('https://api.energy-charts.info/price?bzn=DE-LU'),s0=new Date().setHours(0,0,0,0)/1e3,
+  P=d.unix_seconds.map((t,i)=>({t,p:d.price[i]})).filter(x=>x.t>=s0&&x.p!=null),now=Date.now()/1e3;
+  const cur=[...P].reverse().find(x=>x.t<=now)||P[0],pr=P.map(x=>x.p),hi=Math.max(...pr),lo=Math.min(...pr,0),W=300,H=70,bw=W/P.length;
+  const bars=P.map((x,i)=>`<rect x="${(i*bw).toFixed(1)}" y="${(H-4-(Math.max(x.p,0)-lo)/(hi-lo||1)*(H-8)).toFixed(1)}" width="${Math.max(bw-.6,.5).toFixed(1)}" height="${((Math.max(x.p,0)-lo)/(hi-lo||1)*(H-8)+1).toFixed(1)}" fill="${x===cur?'var(--amb)':'var(--ac)'}" opacity="${x===cur?1:.55}"/>`).join('');
+  const hasTom=P.some(x=>x.t>=s0+864e2);
+  el.innerHTML=`<div class="big">${cur.p.toFixed(1)}<small> €/MWh</small></div><div class="m">Day-Ahead DE-LU, aktuelle Stunde (orange)</div><svg class="ch" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">${bars}</svg>
+  <div class="kv"><div><b>${Math.min(...pr).toFixed(1)}</b><span>Min. €/MWh</span></div><div><b>${hi.toFixed(1)}</b><span>Max. €/MWh</span></div><div><b>${hasTom?'ja':'noch nicht'}</b><span>Preise für morgen</span></div></div>`}catch(e){fail(el)}}
+
+/* ===== Gasspeicher (AGSI-Schlüssel nötig) ===== */
+async function gs(){const el=$('#gs'),k=localStorage.agsi;
+  if(!k){el.innerHTML='<p class="m">Für die Füllstände braucht es einen kostenlosen API-Schlüssel von agsi.gie.eu.</p><input id="ak" placeholder="AGSI-API-Schlüssel"><button class="btn" id="aks">Schlüssel speichern</button>';$('#aks').onclick=()=>{localStorage.agsi=$('#ak').value.trim();gs()};return}
+  try{const d=(await j('https://agsi.gie.eu/api?country=de&size=30',{headers:{'x-key':k}})).data,a=d[0],v=d.map(x=>+x.full).reverse();
+  el.innerHTML=`<div class="big">${(+a.full).toFixed(1)}<small> %</small></div><div class="m">Füllstand Deutschland, Gastag ${a.gasDayStart}</div><div class="bar"><i style="width:${a.full}%"></i></div>${poly(v)}
+  <div class="kv"><div><b>${(+a.gasInStorage).toFixed(1)} TWh</b><span>Gas im Speicher</span></div><div><b>${(+a.trend>0?'+':'')+(+a.trend).toFixed(2)} %</b><span>Trend pro Tag</span></div><div><b>${a.injection}</b><span>Einspeicherung GWh/d</span></div></div><p class="m"><a href="#" id="akr">Schlüssel ändern</a></p>`;
+  $('#akr').onclick=e=>{e.preventDefault();delete localStorage.agsi;gs()}}catch(e){fail(el);el.insertAdjacentHTML('beforeend','<p class="m"><a href="#" id="akr">Schlüssel ändern</a></p>');$('#akr').onclick=e=>{e.preventDefault();delete localStorage.agsi;gs()}}}
+
+/* ===== News (Google News RSS über rss2json) ===== */
+const feed=q=>j('https://api.rss2json.com/v1/api.json?rss_url='+encodeURIComponent('https://news.google.com/rss/search?q='+encodeURIComponent(q)+'&hl=de&gl=DE&ceid=DE:de')).then(r=>(r.items||[]).map(i=>{const k=i.title.lastIndexOf(' - ');return{title:k>0?i.title.slice(0,k):i.title,src:k>0?i.title.slice(k+3):'',link:i.link,t:new Date(i.pubDate.replace(' ','T')+'Z').getTime()}}));
+async function news(id,q){const el=$('#'+id);try{const it=(await feed(q)).sort((a,b)=>b.t-a.t).slice(0,8);
+  el.innerHTML=it.length?'<ul class="nl">'+it.map(i=>`<li><a href="${esc(i.link)}" target="_blank" rel="noopener">${esc(i.title)}</a><span>${esc(i.src)}, vor ${ago(i.t)}</span></li>`).join('')+'</ul>':'<p class="m">Keine aktuellen Meldungen.</p>'}catch(e){fail(el)}}
+const NEWS={soN:'Stromausfall when:2d',pol:'Polizei Frankfurt when:2d',fw:'Feuerwehr Frankfurt when:2d',cy:'Cyberangriff OR Cyberattacke OR Hackerangriff Deutschland when:3d',te:'Terror OR Terrorverdacht OR Anschlag Deutschland when:3d',sa:'Sabotage OR Spionage Deutschland when:3d'};
+
+/* ===== NINA und DWD ===== */
+async function nina(){const el=$('#nina'),S=[['MoWaS','mowas'],['Katwarn','katwarn'],['BIWAPP','biwapp'],['DWD','dwd'],['Polizei','police']],R={Extreme:0,Severe:1,Moderate:2,Minor:3};
+  try{const all=await Promise.allSettled(S.map(([n,u])=>j(`https://warnung.bund.de/api31/${u}/mapData.json`).then(a=>a.map(x=>({...x,src:n})))));
+  const L=all.filter(r=>r.status=='fulfilled').flatMap(r=>r.value).sort((a,b)=>(R[a.severity]??4)-(R[b.severity]??4)||new Date(b.startDate)-new Date(a.startDate));
+  if(!all.some(r=>r.status=='fulfilled'))throw 0;
+  el.innerHTML=`<p class="m">${L.length} aktive Warnungen bundesweit. <a href="https://warnung.bund.de/meldungen" target="_blank" rel="noopener">Alle ansehen</a></p><ul class="nl">`+L.slice(0,25).map(x=>`<li><a href="https://warnung.bund.de/meldungen" target="_blank" rel="noopener"><span class="chip ${x.severity}">${esc(x.severity||'Info')}</span><span class="chip">${x.src}</span>${esc(x.i18nTitle?.de||x.id)}</a></li>`).join('')+'</ul>'}catch(e){fail(el)}}
+
+/* ===== Vorkommnisse Deutschland: Karte ===== */
+const TOP={
+ terror:{l:'Terror',e:'⚠️',c:'#dc2626',q:'Terror OR Terrorverdacht OR Terrorverdächtiger Deutschland when:1d'},
+ anschlag:{l:'Anschläge',e:'💥',c:'#ea580c',q:'Anschlag OR Brandanschlag OR Sprengstoff Deutschland when:1d'},
+ sabotage:{l:'Sabotage',e:'🔧',c:'#d97706',q:'Sabotage Deutschland when:1d'},
+ spionage:{l:'Spionage',e:'🕵️',c:'#7c3aed',q:'Spionage OR Spionageverdacht OR Agent Deutschland when:1d'},
+ protest:{l:'Proteste',e:'📢',c:'#0891b2',q:'Demonstration OR Protest OR Kundgebung Deutschland when:1d'},
+ unfall:{l:'Größere Unfälle',e:'🚨',c:'#2563eb',q:'Großbrand OR Massenkarambolage OR Zugunglück OR Explosion Deutschland when:1d'},
+ ffm:{l:'Frankfurt: Polizei/Feuerwehr',e:'🚓',c:'#059669',q:'Frankfurt Polizei OR Feuerwehr Einsatz when:1d'}};
+const CITY=Object.fromEntries('Berlin:52.52,13.40;Hamburg:53.55,9.99;München:48.14,11.58;Köln:50.94,6.96;Frankfurt:50.11,8.68;Stuttgart:48.78,9.18;Düsseldorf:51.23,6.78;Dortmund:51.51,7.47;Essen:51.46,7.01;Leipzig:51.34,12.37;Bremen:53.08,8.80;Dresden:51.05,13.74;Hannover:52.37,9.74;Nürnberg:49.45,11.08;Duisburg:51.43,6.76;Bochum:51.48,7.22;Wuppertal:51.26,7.15;Bielefeld:52.02,8.53;Bonn:50.73,7.10;Münster:51.96,7.63;Mannheim:49.49,8.47;Karlsruhe:49.01,8.40;Augsburg:48.37,10.90;Wiesbaden:50.08,8.24;Mainz:50.00,8.27;Darmstadt:49.87,8.65;Offenbach:50.10,8.76;Kassel:51.32,9.50;Gelsenkirchen:51.52,7.09;Mönchengladbach:51.19,6.44;Braunschweig:52.27,10.52;Kiel:54.32,10.14;Chemnitz:50.83,12.92;Aachen:50.78,6.08;Halle:51.48,11.97;Magdeburg:52.13,11.63;Freiburg:47.99,7.85;Krefeld:51.34,6.59;Lübeck:53.87,10.69;Oberhausen:51.47,6.85;Erfurt:50.98,11.03;Rostock:54.09,12.10;Potsdam:52.40,13.07;Saarbrücken:49.24,6.99;Koblenz:50.36,7.59;Trier:49.75,6.64;Ludwigshafen:49.48,8.44;Heidelberg:49.40,8.67;Regensburg:49.02,12.10;Würzburg:49.79,9.95;Ulm:48.40,9.99;Ingolstadt:48.76,11.42;Osnabrück:52.28,8.05;Oldenburg:53.14,8.21;Göttingen:51.53,9.93;Wolfsburg:52.42,10.79;Cottbus:51.76,14.33;Schwerin:53.63,11.40;Gera:50.88,12.08;Jena:50.93,11.59;Bremerhaven:53.54,8.58;Flensburg:54.78,9.44;Passau:48.57,13.43;Bayreuth:49.94,11.58;Fulda:50.55,9.68;Gießen:50.58,8.68;Hanau:50.13,8.92;Bundeswehr:51.16,10.45;Sachsen-Anhalt:51.95,11.69;Nordrhein-Westfalen:51.43,7.66;NRW:51.43,7.66;Niedersachsen:52.64,9.85;Baden-Württemberg:48.66,9.35;Bayern:48.79,11.50;Hessen:50.65,9.16;Sachsen:51.10,13.20;Thüringen:50.86,11.03;Brandenburg:52.41,13.01;Mecklenburg-Vorpommern:53.61,12.43;Schleswig-Holstein:54.22,9.70;Rheinland-Pfalz:49.91,7.45;Saarland:49.40,6.98'.split(';').map(s=>{const[a,b]=s.split(':');return[a,b.split(',').map(Number)]}));
+const KEYS=Object.keys(CITY).sort((a,b)=>b.length-a.length);
+const hash=s=>[...s].reduce((a,c)=>(a*31+c.charCodeAt(0))|0,7);
+var mapReady=false;let map,layer,pins=[],hidden=new Set(),seen=0;
+function setTiles(){if(tiles)map.removeLayer(tiles);tiles=L.tileLayer(`https://{s}.basemaps.cartocdn.com/${document.documentElement.dataset.theme=='dark'?'dark_all':'light_all'}/{z}/{x}/{y}{r}.png`,{attribution:'© OpenStreetMap, © CARTO',maxZoom:18}).addTo(map)}
+function initMap(){if(mapReady)return;mapReady=true;map=L.map('map').setView([51.1,10.4],6);layer=L.layerGroup().addTo(map);setTiles();
+  $('#leg').innerHTML=Object.entries(TOP).map(([k,t])=>`<button data-k="${k}" style="border-left:5px solid ${t.c}">${t.e} ${t.l}</button>`).join('');
+  document.querySelectorAll('#leg button').forEach(b=>b.onclick=()=>{const k=b.dataset.k;hidden.has(k)?hidden.delete(k):hidden.add(k);b.classList.toggle('off',hidden.has(k));draw()});
+  loadMap()}
+async function loadMap(){const out=[],ids=new Set();
+  const R=await Promise.allSettled(Object.entries(TOP).map(([k,t])=>feed(t.q).then(a=>a.map(x=>({...x,k})))));
+  R.filter(r=>r.status=='fulfilled').flatMap(r=>r.value).sort((a,b)=>b.t-a.t).forEach(x=>{if(ids.has(x.link)||Date.now()-x.t>864e5)return;ids.add(x.link);
+    const key=KEYS.find(c=>x.title.includes(c));let pos=key?CITY[key]:(x.k=='ffm'?CITY.Frankfurt:null);
+    if(pos){const h=hash(x.link);pos=[pos[0]+((h%100)/100-.5)*.06,pos[1]+(((h>>8)%100)/100-.5)*.09]}x.pos=pos;out.push(x)});
+  pins=out;draw();if(!R.some(r=>r.status=='fulfilled'))$('#side').innerHTML='<p class="err">Meldungen gerade nicht abrufbar.</p>'}
+function draw(){if(!layer)return;layer.clearLayers();const now=Date.now(),act=pins.filter(x=>now-x.t<864e5&&!hidden.has(x.k));
+  act.filter(x=>x.pos).forEach(x=>{const t=TOP[x.k];L.marker(x.pos,{icon:L.divIcon({className:'',html:`<div class="pin" style="background:${t.c}">${t.e}</div>`,iconSize:[30,30],iconAnchor:[15,15]})}).addTo(layer)
+    .bindPopup(`<b>${t.e} ${t.l}</b><br>${esc(x.title)}<br><small>${esc(x.src)}, vor ${ago(x.t)}</small><br><a href="${esc(x.link)}" target="_blank" rel="noopener">Originalmeldung öffnen</a>`)});
+  const nl=act.filter(x=>!x.pos).length;
+  $('#sh').innerHTML=`${ic('news')}Meldungen der letzten 24 Std. (${act.length}, ${nl} ohne Ortsbezug)`;
+  $('#side').innerHTML='<ul class="nl" style="max-height:none">'+act.map(x=>`<li><a href="${esc(x.link)}" target="_blank" rel="noopener">${TOP[x.k].e} ${esc(x.title)}</a><span>${esc(x.src)}, vor ${ago(x.t)}${x.pos?'':', nicht verortet'}</span></li>`).join('')+'</ul>'||'';
+  if(!act.length)$('#side').innerHTML='<p class="m">Keine Meldungen in den letzten 24 Stunden.</p>'}
+setInterval(draw,6e4);
+
+/* ===== Start und Aktualisierung ===== */
+function all(){wx();pg();sp();gs();nina();Object.entries(NEWS).forEach(([i,q])=>news(i,q));if(mapReady)loadMap()}
+all();setInterval(all,REFRESH_MIN*6e4);
+</script>
+</body>
+</html>
